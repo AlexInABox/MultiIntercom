@@ -1,2 +1,3 @@
-# zeitvertreib-template-plugin
-The starting off point for every plugin made for zeitvertreib including GitHub Build and release actions.
+# MultiIntercom
+
+With MultiIntercom, every non-scp player currently inside the intercom when it is being used, will be speaking through the intercom.
