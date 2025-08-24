@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MapGeneration;
+using MEC;
 using PlayerRoles.Voice;
 using VoiceChat;
 
@@ -12,20 +14,44 @@ public static class EventHandlers
 {
     public static void RegisterEvents()
     {
-        PlayerEvents.SendingVoiceMessage += OnSendingVoiceMessage;
+        PlayerEvents.UsingIntercom += OnUsingIntercom;
     }
 
     public static void UnregisterEvents()
     {
-        PlayerEvents.SendingVoiceMessage -= OnSendingVoiceMessage;
+        PlayerEvents.UsingIntercom -= OnUsingIntercom;
     }
 
-    private static void OnSendingVoiceMessage(PlayerSendingVoiceMessageEventArgs ev)
+    private static void OnUsingIntercom(PlayerUsingIntercomEventArgs ev)
     {
-        if (!ev.Player.IsAlive || ev.Player.IsDummy || ev.Player.IsHost || ev.Player.IsSCP) return;
-        if (Intercom.State != IntercomState.InUse) return;
+        Timing.RunCoroutine(IntercomLogicLoop());
+        
+        
         if (!Room.Get(RoomName.EzIntercom).First().Players.ToList().Contains(ev.Player)) return;
 
-        ev.Message = ev.Message with { Channel = VoiceChatChannel.Intercom };
+        Intercom.TrySetOverride(ev.Player.ReferenceHub, true);
+    }
+    
+    private static IEnumerator<float> IntercomLogicLoop()
+    {
+        while (Intercom.State == IntercomState.InUse)
+        {
+            foreach (Player player in Player.List)
+            {
+                if (Room.Get(RoomName.EzIntercom).First().Players.ToList().Contains(player))
+                {
+                    Intercom.TrySetOverride(player.ReferenceHub, true);
+                }
+                else
+                {
+                    Intercom.TrySetOverride(player.ReferenceHub, false);
+                }
+            }
+            yield return Timing.WaitForSeconds(1f);
+        }
+        foreach (Player player in Player.List)
+        {
+            Intercom.TrySetOverride(player.ReferenceHub, false);
+        }
     }
 }
